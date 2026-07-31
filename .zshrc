@@ -1,175 +1,57 @@
-# -------------------------------------
-# 環境変数
-# -------------------------------------
+# Oh My Zsh
+export ZSH="$HOME/.oh-my-zsh"
+ZSH_THEME="agnoster"
+plugins=(git rails)
+source "$ZSH/oh-my-zsh.sh"
 
-# SSHで接続した先で日本語が使えるようにする
-export LC_CTYPE=en_US.UTF-8
-export LC_ALL=en_US.UTF-8
+# Directory jumping
+eval "$(jump shell --bind=z)"
 
-# エディタ
-export EDITOR=/usr/local/bin/vim
-
-# ページャ
-export PAGER=/usr/local/bin
-
-export PERL5OPT=-Mlib=extlib/lib/perl5
-source ~/perl5/perlbrew/etc/bashrc
-
-
-# -------------------------------------
-# zshのオプション
-# -------------------------------------
-
-## 補完機能の強化
-autoload -U compinit
-compinit
-
-## 入力しているコマンド名が間違っている場合にもしかして：を出す。
-setopt correct
-
-# ビープを鳴らさない
-setopt nobeep
-
-## 色を使う
-setopt prompt_subst
-
-## ^Dでログアウトしない。
-setopt ignoreeof
-
-## バックグラウンドジョブが終了したらすぐに知らせる。
-setopt no_tify
-
-## 直前と同じコマンドをヒストリに追加しない
-setopt hist_ignore_dups
-
-# 補完
-## タブによるファイルの順番切り替えをしない
-unsetopt auto_menu
-
-# cd -[tab]で過去のディレクトリにひとっ飛びできるようにする
-setopt auto_pushd
-
-# ディレクトリ名を入力するだけでcdできるようにする
-setopt auto_cd
-
-# -------------------------------------
-# パス
-# -------------------------------------
-
-# 重複する要素を自動的に削除
-typeset -U path cdpath fpath manpath
-
-path=(
-    $HOME/bin(N-/)
-    /usr/local/bin(N-/)
-    /usr/local/sbin(N-/)
-    $path
-)
-
-# -------------------------------------
-# プロンプト
-# -------------------------------------
-
-autoload -U promptinit; promptinit
-autoload -Uz colors; colors
-autoload -Uz vcs_info
-autoload -Uz is-at-least
-
-# begin VCS
-zstyle ":vcs_info:*" enable git svn hg bzr
-zstyle ":vcs_info:*" formats "(%s)-[%b]"
-zstyle ":vcs_info:*" actionformats "(%s)-[%b|%a]"
-zstyle ":vcs_info:(svn|bzr):*" branchformat "%b:r%r"
-zstyle ":vcs_info:bzr:*" use-simple true
-
-zstyle ":vcs_info:*" max-exports 6
-
-if is-at-least 4.3.10; then
-    zstyle ":vcs_info:git:*" check-for-changes true # commitしていないのをチェック
-    zstyle ":vcs_info:git:*" stagedstr "<S>"
-    zstyle ":vcs_info:git:*" unstagedstr "<U>"
-    zstyle ":vcs_info:git:*" formats "(%b) %c%u"
-    zstyle ":vcs_info:git:*" actionformats "(%s)-[%b|%a] %c%u"
+# Google Cloud SDK
+if [ -f "$HOME/google-cloud-sdk/path.zsh.inc" ]; then
+  . "$HOME/google-cloud-sdk/path.zsh.inc"
+fi
+if [ -f "$HOME/google-cloud-sdk/completion.zsh.inc" ]; then
+  . "$HOME/google-cloud-sdk/completion.zsh.inc"
 fi
 
-function vcs_prompt_info() {
-    LANG=en_US.UTF-8 vcs_info
-    [[ -n "$vcs_info_msg_0_" ]] && echo -n " %{$fg[yellow]%}$vcs_info_msg_0_%f"
+# mise: Ruby, Python, Node.js and related tools
+eval "$(/opt/homebrew/bin/mise activate zsh)"
+
+# PostgreSQL
+export PGDATA="$HOMEBREW_REPOSITORY/var/postgres"
+
+# Node.js package managers
+export PATH="$HOME/.yarn/bin:$HOME/.config/yarn/global/node_modules/.bin:$PATH"
+export PNPM_HOME="$HOME/Library/pnpm"
+case ":$PATH:" in
+  *":$PNPM_HOME:"*) ;;
+  *) export PATH="$PNPM_HOME:$PATH" ;;
+esac
+
+# MySQL 8.0
+export PATH="/opt/homebrew/opt/mysql@8.0/bin:$PATH"
+
+# fzf
+eval "$(fzf --zsh)"
+
+# ghq + fzf: Ctrl-]でリポジトリを選択して移動
+function ghq-fzf() {
+  local src=$(ghq list | fzf --preview "ls -laTp $(ghq root)/{} | tail -n+4 | awk '{print \$9\"/\"\$6\"/\"\$7 \" \" \$10}'")
+  if [ -n "$src" ]; then
+    BUFFER="cd $(ghq root)/$src"
+    zle accept-line
+  fi
+  zle -R -c
 }
-# end VCS
+zle -N ghq-fzf
+bindkey '^]' ghq-fzf
 
-OK="^_^ "
-NG="X_X "
+# Claude Code
+alias claude="$HOME/.claude/local/claude"
 
-PROMPT=""
-PROMPT+="%(?.%F{green}$OK%f.%F{red}$NG%f) "
-PROMPT+="%F{yellow}%~%f"
-PROMPT+="\$(vcs_prompt_info)"
-PROMPT+="
-"
-PROMPT+="%% "
+# pipx-installed commands
+export PATH="$PATH:$HOME/.local/bin"
 
-RPROMPT="[%*]"
-
-# -------------------------------------
-# エイリアス
-# -------------------------------------
-
-# -n 行数表示, -I バイナリファイル無視, svn関係のファイルを無視
-alias grep="grep --color -n -I --exclude='*.svn-*' --exclude='entries' --exclude='*/cache/*'"
-
-# ls
-autoload -U compinit
-compinit
-
-export LSCOLORS=gxfxxxxxcxxxxxxxxxgxgx
-export LS_COLORS='di=01;36:ln=01;35:ex=01;32'
-zstyle ':completion:*' list-colors 'di=36' 'ln=35' 'ex=32'
-
-alias ls="ls -G"
-alias gls="gls --color"
-
-alias l="ls -la"
-alias la="ls -la"
-alias l1="ls -1"
-
-# tree
-alias tree="tree -NC" # N: 文字化け対策, C:色をつける
-
-
-# -------------------------------------
-# キーバインド
-# -------------------------------------
-
-bindkey -e
-
-function cdup() {
-   echo
-   cd ..
-   zle reset-prompt
-}
-zle -N cdup
-bindkey '^K' cdup
-
-bindkey "^R" history-incremental-search-backward
-
-# -------------------------------------
-# その他
-# -------------------------------------
-
-# cdしたあとで、自動的に ls する
-function chpwd() { ls -1 }
-
-# iTerm2のタブ名を変更する
-function title {
-    echo -ne "\033]0;"$*"\007"
-}
-
-
-
-
-# オートコレクトの確認メッセージを抑制する
-alias bundle='nocorrect bundle'
-
-### Added by the Heroku Toolbelt
-export PATH="/usr/local/heroku/bin:$PATH"
+# npmサプライチェーン攻撃対策: npxは使わずpnpm dlxを使う
+alias npx='echo "don'"'"'t use npx"'
